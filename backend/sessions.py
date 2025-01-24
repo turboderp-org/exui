@@ -188,6 +188,31 @@ class Session:
         self.save()
 
 
+    def _create_session_name_from_text(self, text, max_length=30):
+        """Creates a session name from the first message text.
+        
+        Args:
+            text: The message text to create name from
+            max_length: Maximum length of generated name
+            
+        Returns:
+            A name string, truncated with ellipsis if needed
+        """
+        if not text:
+            return "Unnamed session"
+        
+        processed_text = text.split(": ", 1)[-1].strip()  # Cache split result
+        words = processed_text.split()
+        name = ""
+        for word in words:
+            if len(name) + len(word) + 4 <= max_length:  # +4 for "..." and space
+                name += word + " "
+            else:
+                name = name.strip() + "..."
+                break
+        
+        return name.strip() or "Unnamed session"
+
     def user_input(self, data):
         prompt_format = prompt_formats[self.settings["prompt_format"]]()
         input_text = data["user_input_text"]
@@ -197,6 +222,13 @@ class Session:
         if prompt_format.is_instruct(): prefix = ""
         else: prefix = self.settings["roles"][0] + ": "
         new_block["text"] = prefix + input_text
+        
+        # Auto-rename session if this is the first message
+        if len(self.history) == 0:
+            self.name = self._create_session_name_from_text(input_text)
+            if session_list is not None and self.session_uuid in session_list:
+                session_list[self.session_uuid] = (self.name, session_list[self.session_uuid][1])
+        
         self.history.append(new_block)
         self.save()
         return new_block
@@ -659,6 +691,8 @@ class Session:
         meta["gen_speed"] = generated_tokens / (mt.stages["gen"] + 1e-8)
         meta["overflow"] = max_new_tokens if generated_tokens == max_new_tokens else 0
         meta["canceled"] = abort_event.is_set()
+        meta["context_tokens"] = context_ids.shape[-1] + save_tokens.shape[-1]  # Total tokens in context
+        meta["max_seq_len"] = model.config.max_seq_len  # Maximum sequence length
         new_block["meta"] = meta
 
         # Save response block
@@ -720,4 +754,3 @@ class Session:
                 self.history[i] = block
                 break
         self.save()
-

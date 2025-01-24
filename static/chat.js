@@ -688,9 +688,12 @@ class ChatBlock {
             let ptps = this.block.meta.prompt_speed.toFixed(2)
             if (this.block.meta.prompt_speed > 50000) ptps = "∞";
 
-            let html = "prompt: " + this.block.meta.prompt_tokens.toFixed(0) + " tokens, " + ptps + " tokens/s";
+            let contextPercent = (this.block.meta.context_tokens / this.block.meta.max_seq_len * 100).toFixed(0);
+            let html = "prompt: " + this.block.meta.prompt_tokens.toFixed(0) + " tokens, " + ptps + " tokens/s ";
             html += " ⁄ ";
-            html += "response: " + this.block.meta.gen_tokens.toFixed(0) + " tokens, " + this.block.meta.gen_speed.toFixed(2) + " tokens/s";
+            html += "response: " + this.block.meta.gen_tokens.toFixed(0) + " tokens, " + this.block.meta.gen_speed.toFixed(2) + " tokens/s ";
+            html += " ⁄ ";
+            html += "context: " + contextPercent + "% full";
             p.innerHTML = html;
             this.textBlock.appendChild(p);
         }
