@@ -1,4 +1,6 @@
 import * as util from "./util.js";
+import * as controls from "./controls.js";
+import * as globals from "./globals.js";
 
 class PageOverlay {
     constructor() {
@@ -60,6 +62,25 @@ class LoadingOverlay extends Overlay {
 
         this.bar = util.newDiv(null, "progressbar-bar");
         this.box.appendChild(this.bar);
+
+        this.cancelButton = new controls.Button("✖ Cancel", () => {
+            // First call the cancel handler to abort the fetch request
+            if (this.onCancel) this.onCancel();
+            
+            // Then unload the model to release GPU memory
+            fetch("/api/unload_model")
+            .then(response => response.json())
+            .then(json => {
+                if (json.result == "ok") {
+                    globals.g.loadedModelUUID = null;
+                    globals.g.failedModelUUID = null;
+                }
+            });
+        });
+        this.cancelButton.setEnabled(true);
+        this.element.appendChild(this.cancelButton.element);
+        
+        this.onCancel = null;
     }
 
     setProgress(a, b) {

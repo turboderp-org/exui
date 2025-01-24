@@ -442,6 +442,8 @@ export class ModelView {
     }
 
     loadModel() {
+        const controller = new AbortController();
+        const signal = controller.signal;
 
         overlay.loadingOverlay.setProgress(0, 1);
         overlay.pageOverlay.setMode("loading");
@@ -456,10 +458,18 @@ export class ModelView {
             }, 10000)
         });
 
+        overlay.loadingOverlay.onCancel = () => {
+            controller.abort();
+            overlay.pageOverlay.setMode();
+            this.error_message = "Loading cancelled";
+            this.updateView();
+        };
+
         let fetchRequest = fetch("/api/load_model", {
             method: "POST",
             headers: { "Content-Type": "application/json", },
-            body: JSON.stringify(packet)
+            body: JSON.stringify(packet),
+            signal: signal
         });
 
         const self = this;
