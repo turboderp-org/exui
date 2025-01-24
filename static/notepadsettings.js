@@ -26,9 +26,11 @@ export class NotepadSettings {
 
         this.sss_i_maxTokens   = new controls.SettingsSlider("sss-item-left", "Max tokens",    "sss-item-mid", "sss-item-right sss-item-textbox-r", 0, 16, 2048, null,                             this.settings, "maxtokens",    () => { this.updateView(true); });
         this.sss_i_chunkTokens = new controls.SettingsSlider("sss-item-left", "Chunk tokens",  "sss-item-mid", "sss-item-right sss-item-textbox-r", 0, 16, 2048, null,                             this.settings, "chunktokens",  () => { this.updateView(true); });
+        this.sss_bannedStrings = new controls.CollapsibleSection(null, "Banned strings");
         this.sss_stopConditions = new controls.CollapsibleSection(null, "Stop conditions");
         this.sss_genParams.inner.appendChild(this.sss_i_maxTokens.element);
         this.sss_genParams.inner.appendChild(this.sss_i_chunkTokens.element);
+        this.element.appendChild(this.sss_bannedStrings.element);
         this.element.appendChild(this.sss_stopConditions.element);
 
         // Sampling
@@ -43,6 +45,11 @@ export class NotepadSettings {
         this.sss_i_skew             = new controls.SettingsSlider("sss-item-left", "Skew",          "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,    -5,    5, { "0.00": "off" },                this.settings, "skew",         () => { this.updateView(true); });
         this.sss_i_repPenalty       = new controls.SettingsSlider("sss-item-left", "Rep. penalty",  "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,     1,    3, { "1.00": "off" },                this.settings, "repp",         () => { this.updateView(true); });
         this.sss_i_repRange         = new controls.SettingsSlider("sss-item-left", "Rep. range",    "sss-item-mid", "sss-item-right sss-item-textbox-r", 0,     0, 4096, { "0": "off" },                   this.settings, "repr",         () => { this.updateView(true); });
+        
+        this.sss_i_dry_base             = new controls.SettingsSlider("sss-item-left", "DRY base",          "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,    0,    2, { "0.00": "off" },                this.settings, "dry_base",         () => { this.updateView(true); });
+        this.sss_i_dry_multiplier             = new controls.SettingsSlider("sss-item-left", "DRY mult",          "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,    0,    2, { "0.00": "off" },                this.settings, "dry_multiplier",         () => { this.updateView(true); });
+        this.sss_i_dry_range           = new controls.SettingsSlider("sss-item-left", "DRY range",    "sss-item-mid", "sss-item-right sss-item-textbox-r", 0,     0, 8192, { "0": "infinite" },                   this.settings, "dry_range",         () => { this.updateView(true); });
+
 
         this.sss_i_mirostat     = new controls.CheckboxLabel("sss-item-right clickable", "Mirostat", this.settings, "mirostat", () => { this.updateView(true); });
         this.sss_i_mirostat_tau = new controls.SettingsSlider("sss-item-left", "Mirostat tau",  "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,  0.01,   10, null,                             this.settings, "mirostat_tau", () => { this.updateView(true); });
@@ -61,6 +68,10 @@ export class NotepadSettings {
         this.sss_sampling.inner.appendChild(this.sss_i_repPenalty.element);
         this.sss_sampling.inner.appendChild(this.sss_i_repRange.element);
 
+        this.sss_sampling.inner.appendChild(this.sss_i_dry_base .element);
+        this.sss_sampling.inner.appendChild(this.sss_i_dry_multiplier.element);
+        this.sss_sampling.inner.appendChild(this.sss_i_dry_range.element);
+
         this.sss_sampling.inner.appendChild(this.sss_i_mirostat.element);
         this.sss_sampling.inner.appendChild(this.sss_i_mirostat_tau.element);
         this.sss_sampling.inner.appendChild(this.sss_i_mirostat_eta.element);
@@ -68,6 +79,9 @@ export class NotepadSettings {
         this.sss_sampling.inner.appendChild(this.sss_i_temperature_last.element);
 
         // Stop conditions
+
+        this.sss_i_bannedStrings = new controls.LargeTextbox("sss-item-big-textbox", "Banned strings...", this.settings, "banned_strings", null, () => { this.updateView(true); }, true);
+        this.sss_bannedStrings.inner.appendChild(this.sss_i_bannedStrings.element);
 
         this.populate_stop_conditions();
 

@@ -111,6 +111,9 @@ def get_default_notepad_settings():
         "temperature_last": False,
         "skew": 0.0,
         "stop_conditions": [ { "text": "</s>", "inclusive": False } ],
+        "dry_base": 1.75,
+        "dry_multiplier": 0.0,
+        "dry_range": 1024
     }
 
 
@@ -227,6 +230,11 @@ class Notepad:
         gen_settings.token_repetition_range = self.settings["repr"]
         gen_settings.token_repetition_decay = self.settings["repr"]
 
+        gen_settings.dry_base = self.settings["dry_base"]
+        gen_settings.dry_multiplier = self.settings["dry_multiplier"]
+        gen_settings.dry_range = self.settings["dry_range"]
+        
+
         if gen_settings.temperature == 0:
             gen_settings.temperature = 1.0
             gen_settings.top_k = 1
@@ -273,7 +281,7 @@ class Notepad:
 
         # Generate
 
-        generator.begin_stream(context_ids, gen_settings, token_healing = True, abort_event = abort_event)
+        generator.begin_stream_ex(context_ids, gen_settings, token_healing = True, abort_event = abort_event)
         generator.set_stop_conditions([])
 
         # Get one token (or at least one UTF-8 character)
@@ -318,6 +326,11 @@ class Notepad:
         # Sampling settings
 
         gen_settings = self.get_gen_settings()
+
+        banned_strings = self.settings.get("banned_strings", "").strip()
+        banned_strings = banned_strings.split("\n")
+        banned_strings = [bs.strip() for bs in banned_strings if bs.strip()]
+        if len(banned_strings) == 0: banned_strings = None
 
         # Context
 
@@ -371,7 +384,7 @@ class Notepad:
             if self.context_head != prev_head:
                 prev_head = self.context_head
                 context_ids = full_context_ids[:, self.context_head:]
-                generator.begin_stream(context_ids, gen_settings, token_healing = token_healing, abort_event = abort_event)
+                generator.begin_stream_ex(context_ids, gen_settings, token_healing = token_healing, abort_event = abort_event, banned_strings = banned_strings)
                 if abort_event.is_set():
                     abort_event.clear()
                     packet = {}
