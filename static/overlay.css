@@ -45,3 +45,7 @@
     text-align: center;
     line-height: 30px;
 }
+
+.overlay .textbutton {
+    margin-top: 25px;
+}
