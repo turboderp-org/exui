@@ -125,7 +125,7 @@ def api_get_default_settings():
     if verbose: print("/api/get_default_settings")
     with api_lock:
         result = { "result": "ok",
-                   "session_settings": get_default_session_settings(),
+                   "session_settings": get_default_session_settings(use_model_params=False),  # Use hardcoded defaults
                    "notepad_settings": get_default_notepad_settings(),
                    "prompt_formats": list_prompt_formats() }
         return json.dumps(result) + "\n"
@@ -439,6 +439,96 @@ def api_cancel_notepad_generate():
         if verbose: print("->", result)
         return result
 
+@app.route("/api/get_model_params")
+def api_get_model_params():
+    global api_lock, verbose
+    if verbose: print("/api/get_model_params")
+    with api_lock:
+        model = get_loaded_model()
+        if model is None:
+            result = { "has_params": False }
+        else:
+            # Check if model has any sampling params defined
+            model_dict = model.model_dict
+            # Track which parameters are defined in the model
+            model_params = {
+                "temperature": "temperature" in model_dict,
+                "top_k": "top_k" in model_dict,
+                "top_p": "top_p" in model_dict,
+                "repp": "repp" in model_dict
+            }
+            has_params = any(model_params.values())
+            result = { 
+                "has_params": has_params,
+                "model_params": model_params
+            }
+        if verbose: print("->", result)
+        return json.dumps(result) + "\n"
+
+@app.route("/api/reset_to_app_defaults", methods=['POST'])
+def api_reset_to_app_defaults():
+    global api_lock, verbose
+    if verbose: print("/api/reset_to_app_defaults")
+    with api_lock:
+        session = get_session()
+        if session is not None:
+            # Get default settings
+            default_settings = get_default_session_settings(use_model_params=False)
+            
+            # Define which parameters are sampling-related
+            sampling_params = [
+                "temperature", "top_k", "top_p", "min_p", "tfs",
+                "mirostat", "mirostat_tau", "mirostat_eta", "typical",
+                "repp", "repr", "repd", "quad_sampling", "temperature_last", "skew"
+            ]
+            
+            # Reset only sampling parameters to defaults
+            updated_params = {}
+            for param in sampling_params:
+                updated_params[param] = default_settings[param]
+                session.settings[param] = default_settings[param]
+            
+            session.save()
+            result = { "result": "ok", "settings": updated_params }
+        else:
+            result = { "result": "fail", "error": "No session loaded" }
+        if verbose: print("->", result)
+        return json.dumps(result) + "\n"
+
+@app.route("/api/apply_model_params", methods=['POST'])
+def api_apply_model_params():
+    global api_lock, verbose
+    if verbose: print("/api/apply_model_params")
+    with api_lock:
+        model = get_loaded_model()
+        session = get_session()
+        if model is not None and session is not None:
+            # Get model's defined parameters
+            model_dict = model.model_dict
+            updated_params = {}
+            
+            # Only update parameters that are defined in the model
+            if "temperature" in model_dict:
+                updated_params["temperature"] = model_dict["temperature"]
+                session.settings["temperature"] = model_dict["temperature"]
+            if "top_k" in model_dict:
+                updated_params["top_k"] = model_dict["top_k"]
+                session.settings["top_k"] = model_dict["top_k"]
+            if "top_p" in model_dict:
+                updated_params["top_p"] = model_dict["top_p"]
+                session.settings["top_p"] = model_dict["top_p"]
+            if "repp" in model_dict:
+                updated_params["repp"] = model_dict["repp"]
+                session.settings["repp"] = model_dict["repp"]
+            
+            session.save()
+            # Only return the sampling parameters that were changed
+            result = { "result": "ok", "settings": updated_params }
+        else:
+            result = { "result": "fail", "error": "No model or session loaded" }
+        if verbose: print("->", result)
+        return json.dumps(result) + "\n"
+
 
 # Prepare torch
 
@@ -467,4 +557,3 @@ if browser_start:
     print(f" -- Opening UI in default web browser")
 
 serve(app, host = host, port = port, threads = 8)
-

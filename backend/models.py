@@ -24,6 +24,26 @@ from exllamav2.attn import ExLlamaV2Attention
 from backend.config import config_filename
 from backend.util import *
 
+from typing import Callable, Optional, Dict, Any
+
+# Callback type for model parameter updates
+ModelLoadedCallback = Callable[[Dict[str, Any]], None]
+
+# Global callback that will be called when model parameters are loaded/updated
+model_loaded_callback: Optional[ModelLoadedCallback] = None
+
+def set_model_loaded_callback(callback: Optional[ModelLoadedCallback]) -> None:
+    """Set callback to be notified when model parameters are loaded/updated.
+    
+    Args:
+        callback: Function that takes model dict as argument, or None to clear
+    """
+    global model_loaded_callback
+    if callback is not None and not callable(callback):
+        raise TypeError("Model loaded callback must be callable")
+    model_loaded_callback = callback
+
+# Reserve memory for auto-split functionality
 auto_split_reserve_bytes = 512 * 1024**2
 
 models = {}
@@ -158,7 +178,59 @@ def prepare_draft_model(model):
         if "draft_rope_alpha_auto" not in model: model["draft_rope_alpha_auto"] = True
 
 
-def prepare_model(model):
+def prepare_model(model: Dict[str, Any]) -> None:
+    """Prepare model for loading by configuring parameters and resources.
+    
+    Args:
+        model: Dictionary containing model configuration
+        
+    Raises:
+        ValueError: If model directory is invalid
+        JSONDecodeError: If generation_config.json exists but is malformed
+    """
+    # Read generation_config.json if present
+    config_path = os.path.join(expanduser(model["model_directory"]), "generation_config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, encoding='utf-8') as f:
+                gen_config = json.load(f)
+
+            if not isinstance(gen_config, dict):
+                raise ValueError("generation_config.json must contain a JSON object")
+                
+            print(f"Found generation_config.json: {gen_config}")
+
+            # Map generation config parameters to internal names
+            params_to_check = {
+                "temperature": "temperature",
+                "top_k": "top_k",
+                "top_p": "top_p",
+                "repetition_penalty": "repp"
+            }
+
+            # Store original values for logging
+            orig_values = {k: model.get(k) for k in params_to_check.values()}
+            
+            # Update model with values from generation_config.json
+            for config_name, internal_name in params_to_check.items():
+                if config_name in gen_config:
+                    # Validate parameter types
+                    value = gen_config[config_name]
+                    if not isinstance(value, (int, float)):
+                        print(f"Warning: Invalid type for {config_name} in generation_config.json. Expected number, got {type(value)}")
+                        continue
+                        
+                    model[internal_name] = value
+                    print(f"Setting {internal_name} from {orig_values.get(internal_name)} to {value}")
+
+            # Save updated model config
+            save_models()
+        except json.JSONDecodeError as e:
+            print(f"Error parsing generation_config.json: {e}")
+            print("Using default parameter values")
+        except Exception as e:
+            print(f"Unexpected error reading generation_config.json: {e}")
+            print("Using default parameter values")
 
     prep_config = ExLlamaV2Config()
     prep_config.fasttensors = False
@@ -193,6 +265,14 @@ def prepare_model(model):
     if "chunk_size" not in model: model["chunk_size"] = prep_config.max_input_len
     if "gpu_split" not in model: model["gpu_split"] = ""
     if "gpu_split_auto" not in model: model["gpu_split_auto"] = True
+
+    # Log final parameter state
+    print("Final model parameters:", {
+        "temperature": model.get("temperature", 0.8),
+        "top_k": model.get("top_k", 50),
+        "top_p": model.get("top_p", 0.8),
+        "repp": model.get("repp", 1.01)
+    })
 
 
 class ModelContainer:
@@ -413,6 +493,16 @@ def load_model(data):
         yield json.dumps(result) + "\n"
         return ""
 
+    # Notify about model load via callback
+    if success and model_loaded_callback is not None:
+        print("Calling model_loaded_callback with params:", {
+            "temperature": model.get("temperature", 0.8),
+            "top_k": model.get("top_k", 50),
+            "top_p": model.get("top_p", 0.8),
+            "repp": model.get("repp", 1.01)
+        })
+        model_loaded_callback(model)
+
     result = { "result": "ok" }
     # print(json.dumps(result) + "\n")
     yield json.dumps(result) + "\n"
@@ -430,4 +520,3 @@ def unload_model():
 
     result = { "result": "ok" }
     return result
-

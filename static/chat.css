@@ -1,4 +1,3 @@
-
 .session-list {
     background-color: var(--background-color-body);
     display: flex;
@@ -492,7 +491,6 @@
     display: block;
 }
 
-
 .save-btn {
     background-color: var(--button-background);
     font-size: var(--font-size-small);
@@ -563,4 +561,8 @@
 
 .chat-popup action:last-child {
     margin-bottom: 0;
+}
+
+.highlight {
+    font-weight: bold;
 }

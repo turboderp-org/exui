@@ -39,6 +39,8 @@
     padding-right: 14px;
     margin-right: 10px;
     display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .textbutton.small {
@@ -164,3 +166,7 @@ input[type="checkbox"]:checked + label:after {
       font-weight: bold;
 }
 
+.highlight-label {
+      font-weight: bold;
+      color: var(--textcolor-head);
+}
