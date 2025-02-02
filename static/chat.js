@@ -234,8 +234,26 @@ class SessionView {
         this.items = new Map();
     }
 
+    async countTokens(text) {
+        // Get real token count from server
+        try {
+            const response = await fetch("/api/count_tokens", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: text })
+            });
+            const data = await response.json();
+            return data.token_count;
+        } catch (error) {
+            console.error('Error counting tokens:', error);
+            // Fallback to simple counting if API fails
+            return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+        }
+    }
+
     createInputField() {
         let sdiv = util.newVFlex();
+        sdiv.style.position = 'relative'; // For absolute positioning of counter
 
         let div = document.createElement("textarea");
         div.className = "session-input";
@@ -251,7 +269,26 @@ class SessionView {
                 }
             }
         });
-        div.addEventListener('input', () => { this.inputFieldAutogrow(); });
+
+const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+};
+
+div.addEventListener('input', debounce(async () => {
+    this.inputFieldAutogrow();
+    const tokens = await this.countTokens(div.value);
+    tokenCounter.textContent = tokens === 1 ? "1 token" : `${tokens} tokens`;
+}, 700)); // Delay in ms
+
+        // Create token counter after the textarea
+        let tokenCounter = util.newDiv(null, "token-counter");
+        tokenCounter.textContent = "0 token";
+        sdiv.appendChild(div);
+        sdiv.appendChild(tokenCounter);
 
         this.inputButton = new controls.Button("⏵ Chat", () => { this.submitInput() }, "session-input-button");
         this.cancelButton = new controls.Button("⏹ Stop", () => { this.cancelGen() }, "session-input-button");
@@ -259,7 +296,6 @@ class SessionView {
         this.cancelButton.setHidden(true);
         this.inputButton.refresh();
         this.cancelButton.refresh();
-        sdiv.appendChild(div);
         sdiv.appendChild(this.inputButton.element);
         sdiv.appendChild(this.cancelButton.element);
         return sdiv;
@@ -341,6 +377,10 @@ class SessionView {
         this.sessionInput.value = "";
         this.inputFieldAutogrow();
         this.scrollToBottom();
+        
+        // Reset token counter
+        const tokenCounter = this.element.querySelector('.token-counter');
+        if (tokenCounter) tokenCounter.textContent = "0 token";
 
         if (!this.sessionID || this.sessionID == "new") {
             if (input && input != "") {

@@ -250,6 +250,25 @@ def api_generate():
         if verbose: print("->", result)
         return result
 
+@app.route("/api/count_tokens", methods=['POST'])
+def api_count_tokens():
+    global api_lock, verbose
+    if verbose: print("/api/count_tokens")
+    with api_lock:
+        data = request.get_json()
+        if verbose: print("<-", data)
+        model = get_loaded_model()
+        if model is None:
+            # If no model is loaded, return 0 tokens
+            result = { "result": "ok", "token_count": 0 }
+        else:
+            # Use the model's tokenizer to get actual token count
+            tokenizer = model.tokenizer
+            tokens = tokenizer.encode(data["text"])
+            result = { "result": "ok", "token_count": tokens.shape[-1] }
+        if verbose: print("->", result)
+        return json.dumps(result) + "\n"
+
 @app.route("/api/cancel_generate")
 def api_cancel_generate():
     global api_lock_cancel, verbose
@@ -467,4 +486,3 @@ if browser_start:
     print(f" -- Opening UI in default web browser")
 
 serve(app, host = host, port = port, threads = 8)
-

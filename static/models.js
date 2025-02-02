@@ -12,10 +12,12 @@ export class Models {
         this.page.appendChild(layout);
 
         let layout_l = util.newHFlex();
+        this.searchContainer = util.newDiv(null, "model-search-container");
         this.modelList = util.newDiv(null, "model-list");
         this.modelView = util.newDiv(null, "model-view");
         let panel = util.newDiv(null, "model-list-controls");
         layout.appendChild(layout_l);
+        layout_l.appendChild(this.searchContainer);
         layout_l.appendChild(this.modelList);
         layout_l.appendChild(panel);
         layout.appendChild(this.modelView);
@@ -23,11 +25,16 @@ export class Models {
         this.removeButton = new controls.LinkButton("✖ Remove model", "✖ Confirm", () => { this.removeModel(this.lastModelUUID); });
         panel.appendChild(this.removeButton.element);
 
+        this.searchBox = null;
+        this.searchState = "";
         this.items = new Map();
         this.labels = new Map();
         this.currentView = null;
 
+
         this.lastModelUUID = null;
+
+        this.createSearchBox();
     }
 
     onEnter() {
@@ -39,13 +46,35 @@ export class Models {
         });
     }
 
-    populateModelList(response) {
+   createSearchBox() {
+        this.searchBox = new controls.LabelTextboxButton(null, null, "model-search-box", "Search models...", this, "searchState", null, () => {}, null, "✖", () => {
+            this.searchState = "";
+            this.searchBox.tb.value = "";
+            this.populateModelList();
+        });
+        this.searchBox.tb.addEventListener("input", () => {
+            this.searchState = this.searchBox.tb.value;
+            this.populateModelList();
+        });
+        this.searchContainer.appendChild(this.searchBox.element);
+    }
+
+    populateModelList(response = null) {
+        if (response) {
+            this.modelData = response.models;
+        }
 
         this.modelList.innerHTML = "";
 
-        for (let model_uuid in response.models)
-            if (response.models.hasOwnProperty(model_uuid))
-                this.addModel(response.models[model_uuid], model_uuid);
+        for (let model_uuid in this.modelData) {
+            if (this.modelData.hasOwnProperty(model_uuid)) {
+                const name = this.modelData[model_uuid];
+                if (this.searchState && !name.toLowerCase().includes(this.searchState.toLowerCase())) {
+                    continue;
+                }
+                this.addModel(name, model_uuid);
+            }
+        }
 
         this.addModel("New model", "new");
         let m = this.lastModelUUID ? this.lastModelUUID : "new";

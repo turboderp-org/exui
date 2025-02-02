@@ -131,6 +131,40 @@
     color: var(--textcolor-dim);
 }
 
+.token-counter {
+    position: absolute;
+    bottom: 18px;
+    right: 120px;
+    font-size: var(--font-size-small);
+    color: var(--textcolor-text);
+    font-family: var(--font-family);
+    user-select: none;
+    pointer-events: none;
+    background-color: var(--background-color-control);
+    padding: 2px 6px;
+    border-radius: 4px;
+    opacity: 0.8;
+    z-index: 1;
+    transition: opacity 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.session-input:focus ~ .token-counter,
+.session-input:hover ~ .token-counter {
+    opacity: 1;
+    color: var(--textcolor-text);
+    background-color: var(--background-color-control);
+    filter: brightness(var(--select-brightness));
+}
+
+.session-input:hover ~ .token-counter {
+    filter: brightness(var(--hover-brightness));
+}
+
+
+.session-input-surround {
+    position: relative;  /* Ensure absolute positioning works correctly */
+}
+
 .session-block {
     padding-bottom: 10px;
     padding-right: 10px;
