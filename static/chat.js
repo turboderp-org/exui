@@ -278,15 +278,21 @@ const debounce = (func, delay) => {
     };
 };
 
-div.addEventListener('input', debounce(async () => {
-    this.inputFieldAutogrow();
-    const tokens = await this.countTokens(div.value);
-    tokenCounter.textContent = tokens === 1 ? "1 token" : `${tokens} tokens`;
-}, 700)); // Delay in ms
+        div.addEventListener('input', debounce(async () => {
+            this.inputFieldAutogrow();
+            if (globals.g.loadedModelUUID) {
+                const tokens = await this.countTokens(div.value);
+                tokenCounter.textContent = tokens === 1 ? "1 token" : `${tokens} tokens`;
+                tokenCounter.style.display = 'block';
+            } else {
+                tokenCounter.style.display = 'none';
+            }
+        }, 700)); // Delay in ms
 
-        // Create token counter after the textarea
+        // Create token counter after the textarea, initially hidden
         let tokenCounter = util.newDiv(null, "token-counter");
         tokenCounter.textContent = "0 token";
+        tokenCounter.style.display = 'none';
         sdiv.appendChild(div);
         sdiv.appendChild(tokenCounter);
 
@@ -380,7 +386,14 @@ div.addEventListener('input', debounce(async () => {
         
         // Reset token counter
         const tokenCounter = this.element.querySelector('.token-counter');
-        if (tokenCounter) tokenCounter.textContent = "0 token";
+        if (tokenCounter) {
+            if (globals.g.loadedModelUUID) {
+                tokenCounter.textContent = "0 token";
+                tokenCounter.style.display = 'block';
+            } else {
+                tokenCounter.style.display = 'none';
+            }
+        }
 
         if (!this.sessionID || this.sessionID == "new") {
             if (input && input != "") {
