@@ -274,8 +274,6 @@ export class LabelNumbox extends LabelTextbox {
         super(classNameLabel, textLabel, className, placeholder, data, data_id, null, updateFunc, cb_auto_id);
         this.min = min;
         this.max = max;
-        this.min = min;
-        this.max = max;
         this.decimals = decimals;
 
         // Override dynamic width calculation for numeric inputs
