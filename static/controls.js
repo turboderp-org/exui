@@ -39,6 +39,28 @@ export class LabelTextbox {
         if (placeholder) this.tb.placeholder = placeholder;
         this.tb.spellcheck = false;
         this.tb.value = this.data[this.data_id] ? this.data[this.data_id] : "";
+        
+        // Create hidden span to measure text width
+        this.measureSpan = document.createElement("span");
+        this.measureSpan.style.visibility = "hidden";
+        this.measureSpan.style.position = "absolute";
+        this.measureSpan.style.whiteSpace = "pre";
+        // Copy font styles from input to span for accurate measurement
+        this.measureSpan.style.font = window.getComputedStyle(this.tb).font;
+        document.body.appendChild(this.measureSpan);
+
+        // Function to update input width based on content
+        const updateWidth = () => {
+            this.measureSpan.textContent = this.tb.value || this.tb.placeholder;
+            const width = this.measureSpan.offsetWidth;
+            this.tb.style.width = (width + 20) + 'px'; // Add padding
+        };
+
+        // Update width on input
+        this.tb.addEventListener("input", updateWidth);
+        
+        // Initial width update
+        updateWidth();
 
         this.tb.addEventListener("focus", () => {
             //console.log(this.data[this.data_id]);
@@ -98,6 +120,10 @@ export class LabelTextbox {
     refresh() {
         let v = this.data[this.data_id] ? this.data[this.data_id] : null;
         this.tb.value = v;
+        // Update width when refreshing
+        this.measureSpan.textContent = this.tb.value || this.tb.placeholder;
+        const width = this.measureSpan.offsetWidth;
+        this.tb.style.width = (width + 20) + 'px';
         this.refreshCB();
     }
 
@@ -248,7 +274,13 @@ export class LabelNumbox extends LabelTextbox {
         super(classNameLabel, textLabel, className, placeholder, data, data_id, null, updateFunc, cb_auto_id);
         this.min = min;
         this.max = max;
+        this.min = min;
+        this.max = max;
         this.decimals = decimals;
+
+        // Override dynamic width calculation for numeric inputs
+        this.measureSpan = null; // Remove the span used for width measurement
+        this.tb.style.width = null; // Remove any inline width style
     }
 
     interpret(value) {
@@ -263,6 +295,11 @@ export class LabelNumbox extends LabelTextbox {
     refresh() {
         this.tb.value = this.data[this.data_id].toFixed(this.decimals);
         this.refreshCB();
+        // Override parent's refresh method to prevent dynamic width calculation
+        if (this.measureSpan) {
+            document.body.removeChild(this.measureSpan);
+            this.measureSpan = null;
+        }
     }
 }
 

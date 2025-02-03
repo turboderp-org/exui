@@ -142,6 +142,44 @@
     flex-grow: 1;
 }
 
+.folder-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 4px;
+    margin-right: 8px;
+    border-radius: 4px;
+}
+
+.folder-button:hover {
+    background-color: var(--background-color-active);
+}
+
+.folder-button:hover svg {
+    filter: brightness(1.3);
+}
+
+.folder-button svg {
+    width: 24px;
+    height: 24px;
+    fill: var(--textcolor-head);
+}
+
+.model-directory-container {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    min-width: 0; /* Allow container to shrink below content size */
+    overflow: hidden; /* Prevent overflow */
+}
+
+.model-view-item-textbox.wide {
+    flex: 0 1 auto; /* Allow textbox to shrink */
+    min-width: 100px; /* Minimum width */
+    max-width: calc(100% - 40px); /* Maximum width accounting for folder icon */
+}
+
 .model-view-item-textbox.shortright {
     width: 100px;
     text-align: right;
@@ -181,6 +219,3 @@
     flex-grow: 1;
     justify-content: end;
 }
-
-
-
