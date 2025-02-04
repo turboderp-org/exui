@@ -78,6 +78,10 @@ export class SessionSettings {
         this.sss_i_repPenalty       = new controls.SettingsSlider("sss-item-left", "Rep. penalty",  "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,     1,    3, { "1.00": "off" },                this.settings, "repp",         () => { this.updateView(true); });
         this.sss_i_repRange         = new controls.SettingsSlider("sss-item-left", "Rep. range",    "sss-item-mid", "sss-item-right sss-item-textbox-r", 0,     0, 4096, { "0": "off" },                   this.settings, "repr",         () => { this.updateView(true); });
 
+        this.sss_i_dry_base         = new controls.SettingsSlider("sss-item-left", "DRY base",      "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,    0,    2, { "0.00": "off" },                 this.settings, "dry_base",     () => { this.updateView(true); });
+        this.sss_i_dry_multiplier   = new controls.SettingsSlider("sss-item-left", "DRY mult",      "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,    0,    2, { "0.00": "off" },                 this.settings, "dry_multiplier", () => { this.updateView(true); });
+        this.sss_i_dry_range        = new controls.SettingsSlider("sss-item-left", "DRY range",     "sss-item-mid", "sss-item-right sss-item-textbox-r", 0,    0, 8192, { "0": "infinite" },               this.settings, "dry_range",    () => { this.updateView(true); });
+
         this.sss_i_mirostat         = new controls.CheckboxLabel("sss-item-right clickable", "Mirostat", this.settings, "mirostat", () => { this.updateView(true); });
         this.sss_i_mirostat_tau     = new controls.SettingsSlider("sss-item-left", "Mirostat tau",  "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,  0.01,   10, null,                             this.settings, "mirostat_tau", () => { this.updateView(true); });
         this.sss_i_mirostat_eta     = new controls.SettingsSlider("sss-item-left", "Mirostat eta",  "sss-item-mid", "sss-item-right sss-item-textbox-r", 2,  0.01,    5, null,                             this.settings, "mirostat_eta", () => { this.updateView(true); });
@@ -94,6 +98,10 @@ export class SessionSettings {
         this.sss_sampling.inner.appendChild(this.sss_i_skew.element);
         this.sss_sampling.inner.appendChild(this.sss_i_repPenalty.element);
         this.sss_sampling.inner.appendChild(this.sss_i_repRange.element);
+
+        this.sss_sampling.inner.appendChild(this.sss_i_dry_base .element);
+        this.sss_sampling.inner.appendChild(this.sss_i_dry_multiplier.element);
+        this.sss_sampling.inner.appendChild(this.sss_i_dry_range.element);
 
         this.sss_sampling.inner.appendChild(this.sss_i_mirostat.element);
         this.sss_sampling.inner.appendChild(this.sss_i_mirostat_tau.element);

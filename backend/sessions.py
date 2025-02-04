@@ -131,6 +131,9 @@ def get_default_session_settings(use_model_params=False):
         "quad_sampling": 0.0,
         "temperature_last": False,
         "skew": 0.0,
+        "dry_base": 1.75,
+        "dry_multiplier": 0.0,
+        "dry_range": 1024
     }
     
     if use_model_params:
@@ -504,6 +507,9 @@ class Session:
         gen_settings.token_repetition_penalty = self.settings["repp"]
         gen_settings.token_repetition_range = self.settings["repr"]
         gen_settings.token_repetition_decay = self.settings["repr"]
+        gen_settings.dry_base = self.settings["dry_base"]
+        gen_settings.dry_multiplier = self.settings["dry_multiplier"]
+        gen_settings.dry_range = self.settings["dry_range"]
 
         if gen_settings.temperature == 0:
             gen_settings.temperature = 1.0
