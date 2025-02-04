@@ -56,6 +56,12 @@ export class Models {
             this.searchState = this.searchBox.tb.value;
             this.populateModelList();
         });
+        this.searchBox.tb.addEventListener("keydown", () => {
+            if (event.key === 'Escape' || event.keyCode === 27) {
+                this.searchState = this.textbox_initial;
+                this.populateModelList();
+            }
+        });
         this.searchContainer.appendChild(this.searchBox.element);
     }
 
