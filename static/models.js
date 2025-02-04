@@ -311,8 +311,48 @@ export class ModelView {
         this.element.appendChild(util.newDiv(null, "model-view-text divider", ""));
         this.element.appendChild(util.newDiv(null, "model-view-text spacer", ""));
 
-        this.tb_model_directory = new controls.LabelTextbox("model-view-item-left", "Model directory", "model-view-item-textbox wide", "~/models/my_model/", this.modelInfo, "model_directory", null, () => { this.send() } );
-        this.element.appendChild(this.tb_model_directory.element);
+// Create container for model directory input and folder button
+let modelDirContainer = util.newDiv(null, "model-directory-container");
+this.element.appendChild(modelDirContainer);
+
+        // Function to normalize path separators based on platform
+        const normalizePath = (path) => {
+            const isWindows = navigator.platform.toLowerCase().includes('win');
+            if (isWindows) {
+                return path.replace(/\//g, '\\');
+            }
+            return path;
+        };
+
+        // Create a function to handle folder selection
+        const selectFolder = async () => {
+            try {
+                const response = await fetch("/api/select_folder");
+                const data = await response.json();
+                if (data.result === "ok" && data.path) {
+                    // Update the model directory textbox with the selected path
+                    this.modelInfo.model_directory = normalizePath(data.path);
+                    this.tb_model_directory.refresh();
+                    this.send();
+                }
+            } catch (err) {
+                console.log('Folder selection error:', err);
+            }
+        };
+
+// Create model directory textbox
+this.tb_model_directory = new controls.LabelTextbox("model-view-item-left", "Model directory", "model-view-item-textbox wide", "~/models/my_model/", this.modelInfo, "model_directory", null, () => { this.send() } );
+modelDirContainer.appendChild(this.tb_model_directory.label);
+
+// Create folder button
+let folderButton = util.newDiv(null, "folder-button");
+folderButton.appendChild(util.newIcon("folder-icon"));
+folderButton.addEventListener("click", () => {
+    selectFolder();
+});
+modelDirContainer.appendChild(folderButton);
+
+modelDirContainer.appendChild(this.tb_model_directory.tb);
 
         this.element_model = util.newHFlex();
         this.element_model_error = util.newHFlex();
@@ -380,8 +420,39 @@ export class ModelView {
         //this.element_model.appendChild(util.newDiv(null, "model-view-text spacer", ""));
         this.element_draft_model.appendChild(util.newDiv(null, "model-view-text spacer", ""));
 
+        // Create container for draft model directory input and folder button
+        let draftModelDirContainer = util.newDiv(null, "model-directory-container");
+        this.element_draft_model.appendChild(draftModelDirContainer);
+
+        // Create a function to handle draft folder selection
+        const selectDraftFolder = async () => {
+            try {
+                const response = await fetch("/api/select_folder");
+                const data = await response.json();
+                if (data.result === "ok" && data.path) {
+                    // Update the draft model directory textbox with the selected path
+                    this.modelInfo.draft_model_directory = normalizePath(data.path);
+                    this.tb_draft_model_directory.refresh();
+                    this.send();
+                }
+            } catch (err) {
+                console.log('Folder selection error:', err);
+            }
+        };
+
+        // Create draft model directory textbox
         this.tb_draft_model_directory = new controls.LabelTextbox("model-view-item-left", "Draft model directory", "model-view-item-textbox wide", "~/models/my_draft_model/", this.modelInfo, "draft_model_directory", null, () => { this.send() } );
-        this.element_draft_model.appendChild(this.tb_draft_model_directory.element);
+        draftModelDirContainer.appendChild(this.tb_draft_model_directory.label);
+
+        // Create folder button
+        let draftFolderButton = util.newDiv(null, "folder-button");
+        draftFolderButton.appendChild(util.newIcon("folder-icon"));
+        draftFolderButton.addEventListener("click", () => {
+            selectDraftFolder();
+        });
+        draftModelDirContainer.appendChild(draftFolderButton);
+
+        draftModelDirContainer.appendChild(this.tb_draft_model_directory.tb);
 
         this.element_draft_model_s = util.newHFlex();
         this.element_draft_model_error = util.newHFlex();

@@ -5,6 +5,8 @@ from flask import Flask, render_template, request
 from flask import Response, stream_with_context
 from waitress import serve
 import webbrowser
+from tkinter import filedialog, Tk
+import tkinter as tk
 
 import torch
 
@@ -272,6 +274,20 @@ def api_delete_session():
         if verbose: print("->", result)
         return json.dumps(result) + "\n"
 
+@app.route("/api/select_folder")
+def api_select_folder():
+    global api_lock, verbose
+    if verbose: print("/api/select_folder")
+    with api_lock:
+        root = Tk()
+        root.withdraw()  # Hide the main window
+        root.attributes('-topmost', True)  # Make sure dialog appears on top
+        folder = filedialog.askdirectory()
+        root.destroy()
+        result = {"result": "ok", "path": folder if folder else ""}
+        if verbose: print("->", result)
+        return json.dumps(result) + "\n"
+
 @app.route("/api/remove_model", methods=['POST'])
 def api_remove_model():
     global api_lock, verbose
@@ -467,4 +483,3 @@ if browser_start:
     print(f" -- Opening UI in default web browser")
 
 serve(app, host = host, port = port, threads = 8)
-
