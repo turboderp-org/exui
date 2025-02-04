@@ -59,7 +59,6 @@
     padding: 20px;
     height: calc(100vh - 40px);
     overflow-y: auto;
-    flex-grow: 1;
 }
 
 .model-view-text {

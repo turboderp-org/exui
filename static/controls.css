@@ -1,6 +1,6 @@
 
 .vflex_line {
-    height-min: 32px;
+    min-height: 32px;
 }
 
 .checkbox {
