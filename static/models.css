@@ -59,7 +59,6 @@
     padding: 20px;
     height: calc(100vh - 40px);
     overflow-y: auto;
-    flex-grow: 1;
 }
 
 .model-view-text {
@@ -136,10 +135,6 @@
 
 .model-view-item-textbox::placeholder {
     color: var(--textcolor-dim);
-}
-
-.model-view-item-textbox.wide {
-    flex-grow: 1;
 }
 
 .folder-button {
