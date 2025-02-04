@@ -565,7 +565,13 @@ const debounce = (func, delay) => {
         }
 
         if (response.result == "cancel_pre") {
+            // Handle cancel
+        }
 
+        if (response.result == "refresh_settings") {
+            // Update settings and refresh UI
+            this.chatSettings = response.settings;
+            this.settings.populate();
         }
 
         if (this.stickyScroll) this.scrollToBottom();

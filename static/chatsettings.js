@@ -1,4 +1,3 @@
-
 import * as util from "./util.js";
 import * as mainmenu from "./mainmenu.js";
 import * as globals from "./globals.js";
@@ -10,6 +9,8 @@ export class SessionSettings {
         this.element = util.newHFlex();
         this.parent = parent;
         this.settings = this.parent.chatSettings;
+        this.modelDefaultValues = {};  // Store model default values
+        this.samplingControls = [];  // Initialize sampling controls array
         //console.log(this.settings);
         this.populate();
     }
@@ -100,6 +101,210 @@ export class SessionSettings {
 
         this.sss_sampling.inner.appendChild(this.sss_i_temperature_last.element);
 
+        // Add buttons for model and app defaults
+        let buttonsContainer = document.createElement("div");
+        buttonsContainer.style.display = "flex";
+        buttonsContainer.style.gap = "10px";
+
+        this.sss_i_applyModelParams = new controls.Button("Model defaults", () => this.applyModelDefaults());
+        this.sss_i_applyModelParams.element.style.width = "130px";
+
+        this.sss_i_resetToAppDefaults = new controls.Button("App defaults", () => this.resetToAppDefaults());
+        this.sss_i_resetToAppDefaults.element.style.width = "130px";
+
+        buttonsContainer.appendChild(this.sss_i_applyModelParams.element);
+        buttonsContainer.appendChild(this.sss_i_resetToAppDefaults.element);
+
+        // Map parameter names to their label elements
+        this.paramLabels = {
+            temperature: this.sss_i_temperature.element.querySelector(".sss-item-left"),
+            top_k: this.sss_i_topK.element.querySelector(".sss-item-left"),
+            top_p: this.sss_i_topP.element.querySelector(".sss-item-left"),
+            min_p: this.sss_i_minP.element.querySelector(".sss-item-left"),
+            quad_sampling: this.sss_i_quadSampling.element.querySelector(".sss-item-left"),
+            tfs: this.sss_i_tfs.element.querySelector(".sss-item-left"),
+            typical: this.sss_i_typical.element.querySelector(".sss-item-left"),
+            skew: this.sss_i_skew.element.querySelector(".sss-item-left"),
+            repp: this.sss_i_repPenalty.element.querySelector(".sss-item-left"),
+            repr: this.sss_i_repRange.element.querySelector(".sss-item-left"),
+            mirostat: this.sss_i_mirostat.element,
+            mirostat_tau: this.sss_i_mirostat_tau.element.querySelector(".sss-item-left"),
+            mirostat_eta: this.sss_i_mirostat_eta.element.querySelector(".sss-item-left"),
+            temperature_last: this.sss_i_temperature_last.element
+        };
+
+        // Helper function to toggle label highlights
+        const toggleHighlights = (modelParams, shouldHighlight) => {
+            Object.entries(modelParams).forEach(([param, isDefined]) => {
+                const label = this.paramLabels[param];
+                if (isDefined && label) {
+                    if (shouldHighlight) {
+                        label.classList.add("highlight-label");
+                    } else {
+                        label.classList.remove("highlight-label");
+                    }
+                }
+            });
+        };
+
+        // Function to check if any sampling parameter differs from model defaults
+        const checkModelParamsDiffer = async () => {
+            try {
+                const response = await fetch("/api/get_model_params");
+                const data = await response.json();
+                if (!data.model_params) return { hasDifferences: false, diffParams: {} };
+                
+                const modelParams = data.model_params;
+                const diffParams = {};
+                let hasDifferences = false;
+                
+                // Only check parameters that are defined in the model
+                Object.entries(modelParams).forEach(([param, isDefined]) => {
+                    if (isDefined) {
+                        const differs = this.settings[param] !== this.modelDefaultValues?.[param];
+                        diffParams[param] = differs;
+                        if (differs) hasDifferences = true;
+                    }
+                });
+                
+                return { hasDifferences, diffParams };
+            } catch (error) {
+                console.error("Error checking model parameters:", error);
+                return { hasDifferences: false, diffParams: {} };
+            }
+        };
+
+        // Function to check if any sampling parameter differs from app defaults
+        const checkSamplingParamsDiffer = async () => {
+            try {
+                const response = await fetch("/api/get_default_settings");
+                const data = await response.json();
+                if (!data.session_settings) return false;
+                
+                const defaults = data.session_settings;
+                const samplingParams = [
+                    "temperature", "top_k", "top_p", "min_p", "tfs",
+                    "mirostat", "mirostat_tau", "mirostat_eta", "typical",
+                    "repp", "repr", "quad_sampling", "temperature_last", "skew"
+                ];
+                
+                const diffParams = {};
+                let hasDifferences = false;
+                
+                samplingParams.forEach(param => {
+                    const differs = this.settings[param] !== defaults[param];
+                    diffParams[param] = differs;
+                    if (differs) hasDifferences = true;
+                });
+                
+                return { hasDifferences, diffParams };
+            } catch (error) {
+                console.error("Error checking sampling parameters:", error);
+                return { hasDifferences: false, diffParams: {} };
+            }
+        };
+
+        // Add hover event listeners for both buttons
+        const setupButtonHover = (button, checkFn) => {
+            button.element.addEventListener("mouseover", async () => {
+                const { hasDifferences, diffParams } = await checkFn();
+                if (hasDifferences) {
+                    button.element.classList.add("enabled");
+                    toggleHighlights(diffParams, true);
+                }
+            });
+
+            button.element.addEventListener("mouseout", () => {
+                button.element.classList.remove("enabled");
+                // Remove all highlights unconditionally
+                Object.keys(this.paramLabels).forEach(param => {
+                    const label = this.paramLabels[param];
+                    if (label) {
+                        label.classList.remove("highlight-label");
+                    }
+                });
+            });
+        };
+
+        setupButtonHover(this.sss_i_applyModelParams, checkModelParamsDiffer);
+        setupButtonHover(this.sss_i_resetToAppDefaults, checkSamplingParamsDiffer);
+
+        // Function to update App defaults button state
+        this.updateAppDefaultsButton = async () => {
+            const { hasDifferences } = await checkSamplingParamsDiffer();
+            this.sss_i_resetToAppDefaults.setEnabled(hasDifferences);
+        };
+
+        // Function to update Model defaults button state
+        this.updateModelDefaultsButton = async () => {
+            const { hasDifferences } = await checkModelParamsDiffer();
+            this.sss_i_applyModelParams.setEnabled(hasDifferences);
+        };
+
+        // Set up sampling parameter controls
+        this.samplingControls = [
+            this.sss_i_temperature, this.sss_i_topK, this.sss_i_topP,
+            this.sss_i_minP, this.sss_i_quadSampling, this.sss_i_tfs,
+            this.sss_i_typical, this.sss_i_skew, this.sss_i_repPenalty,
+            this.sss_i_repRange, this.sss_i_mirostat, this.sss_i_mirostat_tau,
+            this.sss_i_mirostat_eta, this.sss_i_temperature_last
+        ];
+
+        // Helper function to update button states
+        const updateButtons = () => {
+            this.updateAppDefaultsButton();
+            this.updateModelDefaultsButton();
+        };
+
+        // Add event listeners to controls
+        this.samplingControls.forEach(control => {
+            if (control?.element) {
+                ['input[type="range"]', 'input[type="text"]', 'input[type="checkbox"]'].forEach(selector => {
+                    const element = control.element.querySelector(selector);
+                    if (element) {
+                        const event = selector.includes('checkbox') ? 'change' : selector.includes('text') ? 'blur' : 'input';
+                        element.addEventListener(event, updateButtons);
+                    }
+                });
+            }
+        });
+
+        // Initial button states
+        this.updateAppDefaultsButton();
+        this.updateModelDefaultsButton();
+
+        // Add separator before buttons
+        let separator = document.createElement("div");
+        separator.style.height = "20px";
+        this.sss_sampling.inner.appendChild(separator);
+
+        this.sss_sampling.inner.appendChild(buttonsContainer);
+
+        // Initialize model defaults
+        const initModelDefaults = async () => {
+            try {
+                const paramsResponse = await fetch("/api/get_model_params");
+                const paramsData = await paramsResponse.json();
+                
+                if (paramsData.has_params && paramsData.model_params) {
+                    const modelResponse = await fetch("/api/apply_model_params", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" }
+                    });
+                    const modelData = await modelResponse.json();
+                    
+                    if (modelData.settings) {
+                        this.modelDefaultValues = { ...modelData.settings };
+                        this.updateModelDefaultsButton();
+                    }
+                }
+            } catch (error) {
+                console.error("Error initializing model defaults:", error);
+            }
+        };
+
+        initModelDefaults();
+
         // Stop conditions
 
         this.sss_i_stopNewline = new controls.CheckboxLabel("sss-item-right clickable", "Stop on newline", this.settings, "stop_newline", () => { this.updateView(true); });
@@ -133,7 +338,6 @@ export class SessionSettings {
     }
 
     updateView(send = false) {
-
         // Roles list
 
         let roles = [];
@@ -174,23 +378,83 @@ export class SessionSettings {
         //console.log(this.settings);
     }
 
-    send(post = null) {
-        let packet = {};
-        packet.settings = this.settings;
-        if (!this.parent.sessionID || this.parent.sessionID == "new") {
-            fetch("/api/new_session", { method: "POST", headers: { "Content-Type": "application/json", }, body: JSON.stringify(packet) })
-            .then(response => response.json())
-            .then(response => {
-                this.parent.parent.lastSessionUUID = response.session.session_uuid;
+    async resetToAppDefaults() {
+        try {
+            const response = await fetch("/api/reset_to_app_defaults", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await response.json();
+            
+            if (data.settings) {
+                Object.assign(this.settings, data.settings);
+                
+                // Refresh controls and update UI
+                this.samplingControls.forEach(control => control?.refresh?.());
+                this.updateView(true);
+                await Promise.all([
+                    this.updateAppDefaultsButton(),
+                    this.updateModelDefaultsButton()
+                ]);
+            }
+        } catch (error) {
+            console.error("Error resetting to app defaults:", error);
+        }
+    }
+
+    async applyModelDefaults() {
+        try {
+            const paramsResponse = await fetch("/api/get_model_params");
+            const paramsData = await paramsResponse.json();
+            
+            if (paramsData.has_params) {
+                const modelResponse = await fetch("/api/apply_model_params", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" }
+                });
+                const modelData = await modelResponse.json();
+                
+                if (modelData.settings) {
+                    // Update both settings and model defaults
+                    this.modelDefaultValues = { ...modelData.settings };
+                    Object.assign(this.settings, modelData.settings);
+                    
+                    // Refresh controls and update UI
+                    this.samplingControls.forEach(control => control?.refresh?.());
+                    this.updateView(true);
+                    await Promise.all([
+                        this.updateAppDefaultsButton(),
+                        this.updateModelDefaultsButton()
+                    ]);
+                }
+            }
+        } catch (error) {
+            console.error("Error applying model defaults:", error);
+        }
+    }
+
+    async send(post = null) {
+        try {
+            const packet = { settings: this.settings };
+            const endpoint = !this.parent.sessionID || this.parent.sessionID === "new"
+                ? "/api/new_session"
+                : "/api/update_settings";
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(packet)
+            });
+            const data = await response.json();
+
+            if (endpoint === "/api/new_session") {
+                this.parent.parent.lastSessionUUID = data.session.session_uuid;
                 this.parent.parent.onEnter();
-                if (post) post();
-            });
-        } else {
-            fetch("/api/update_settings", { method: "POST", headers: { "Content-Type": "application/json", }, body: JSON.stringify(packet) })
-            .then(response => response.json())
-            .then(response => {
-                if (post) post();
-            });
+            }
+
+            if (post) post();
+        } catch (error) {
+            console.error("Error sending settings:", error);
         }
     }
 }

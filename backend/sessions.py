@@ -17,13 +17,21 @@ from exllamav2.generator.filters import (
 )
 
 from backend.config import set_config_dir, global_state, config_filename
-from backend.models import get_loaded_model
+from backend.models import set_model_loaded_callback
 from backend.prompts import prompt_formats
 from backend.util import MultiTimer
+import backend.models as models  # Import as module to avoid circular dependency
 import threading
 
 session_list: dict or None = None
 current_session = None
+
+def handle_model_loaded(model):
+    """Handle model loading - only update new sessions with model params"""
+    pass
+
+# Register callback to handle model loading
+set_model_loaded_callback(handle_model_loaded)
 
 # Cancel
 
@@ -92,9 +100,14 @@ def delete_session(d_session):
         current_session = None
 
 
-def get_default_session_settings():
-    return \
-    {
+def get_default_session_settings(use_model_params=False):
+    """Get default session settings
+    
+    Args:
+        use_model_params: If True and a model is loaded with custom params,
+                         apply those params instead of defaults
+    """
+    settings = {
         "prompt_format": "Chat-RP",
         "roles": [ "User", "Assistant", "", "", "", "", "", "" ],
         "system_prompt_default": True,
@@ -119,6 +132,23 @@ def get_default_session_settings():
         "temperature_last": False,
         "skew": 0.0,
     }
+    
+    if use_model_params:
+        # If requested, try to use model parameters
+        loaded_model = models.get_loaded_model()
+        if loaded_model is not None:
+            model_dict = loaded_model.model_dict
+            # Only apply if model has custom params defined
+            if any(param in model_dict for param in ["temperature", "top_k", "top_p", "repp"]):
+                settings.update({
+                    "temperature": model_dict.get("temperature", settings["temperature"]),
+                    "top_k": model_dict.get("top_k", settings["top_k"]),
+                    "top_p": model_dict.get("top_p", settings["top_p"]),
+                    "repp": model_dict.get("repp", settings["repp"])
+                })
+                print("Updated settings with model params:", settings)
+    
+    return settings
 
 class Session:
 
@@ -145,7 +175,8 @@ class Session:
         self.session_uuid = str(uuid.uuid4())
         self.history = []
         # self.mode = ""
-        self.settings = get_default_session_settings()
+        # New sessions get app defaults
+        self.settings = get_default_session_settings(use_model_params=False)
 
 
     def to_json(self):
@@ -163,9 +194,13 @@ class Session:
         self.session_uuid = j["session_uuid"]
         self.history = j["history"]
         # self.mode = j["mode"]
-        settings = get_default_session_settings()
-        if "settings" in j: settings.update(j["settings"])
-        self.settings = settings
+        
+        # Start with hardcoded defaults (no model params)
+        self.settings = get_default_session_settings(use_model_params=False)
+        
+        # Apply ALL saved settings including sampling params
+        if "settings" in j:
+            self.settings.update(j["settings"])
 
 
     def load(self):
@@ -244,7 +279,7 @@ class Session:
 
     def create_context_instruct(self, prompt_format, max_len, min_len, uptoblock = None, prefix = ""):
 
-        tokenizer = get_loaded_model().tokenizer
+        tokenizer = models.get_loaded_model().tokenizer
         prompts = []
         responses = []
 
@@ -347,7 +382,7 @@ class Session:
 
     def create_context_raw(self, prompt_format, max_len, min_len, uptoblock = None, prefix=""):
 
-        tokenizer = get_loaded_model().tokenizer
+        tokenizer = models.get_loaded_model().tokenizer
         history_copy = []
         for h in self.history:
             if h["block_uuid"] == uptoblock: break
@@ -413,16 +448,17 @@ class Session:
         gen_prefix = data.get("prefix", "")
         block_id = data.get("block_id", None)
 
-        if get_loaded_model() is None:
+        if models.get_loaded_model() is None:
             packet = { "result": "fail", "error": "No model loaded." }
             yield json.dumps(packet) + "\n"
             return packet
 
-        model = get_loaded_model().model
-        generator = get_loaded_model().generator
-        tokenizer = get_loaded_model().tokenizer
-        cache = get_loaded_model().cache
-        speculative_mode = get_loaded_model().speculative_mode
+        loaded_model = models.get_loaded_model()
+        model = loaded_model.model
+        generator = loaded_model.generator
+        tokenizer = loaded_model.tokenizer
+        cache = loaded_model.cache
+        speculative_mode = loaded_model.speculative_mode
 
         prompt_format = prompt_formats[self.settings["prompt_format"]]()
 
