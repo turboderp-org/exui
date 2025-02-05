@@ -11,12 +11,16 @@
 }
 
 .model-search-box {
-    flex-grow: 1;
+    width: 215px;
+    min-width: 215px;
     background-color: var(--textbox-background);
     color: var(--textcolor-text);
     border-radius: 5px;
     border: 1px solid var(--textbox-border);
-    padding: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 5px;
+    padding-right: 25px; /* Space for clear button */
     font-size: var(--font-size-medium);
 }
 

@@ -1,4 +1,3 @@
-
 export function assert(condition, message) {
     if (!condition) {
         throw new Error(message || "Assertion failed");
@@ -208,4 +207,14 @@ export function saveStringDialog(textString, filename) {
     downloadLink.click();
     document.body.removeChild(downloadLink);
     URL.revokeObjectURL(textUrl);
+}
+
+export function debounce(func, delay) {
+  let timeoutId;
+  return function(...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func.apply(this, args);
+    }, delay);
+  };
 }
