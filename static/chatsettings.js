@@ -138,7 +138,10 @@ export class SessionSettings {
             mirostat: this.sss_i_mirostat.element,
             mirostat_tau: this.sss_i_mirostat_tau.element.querySelector(".sss-item-left"),
             mirostat_eta: this.sss_i_mirostat_eta.element.querySelector(".sss-item-left"),
-            temperature_last: this.sss_i_temperature_last.element
+            temperature_last: this.sss_i_temperature_last.element,
+            dry_base: this.sss_i_dry_base.element.querySelector(".sss-item-left"),
+            dry_multiplier: this.sss_i_dry_multiplier.element.querySelector(".sss-item-left"),
+            dry_range: this.sss_i_dry_range.element.querySelector(".sss-item-left")
         };
 
         // Helper function to toggle label highlights
@@ -193,7 +196,8 @@ export class SessionSettings {
                 const samplingParams = [
                     "temperature", "top_k", "top_p", "min_p", "tfs",
                     "mirostat", "mirostat_tau", "mirostat_eta", "typical",
-                    "repp", "repr", "quad_sampling", "temperature_last", "skew"
+                    "repp", "repr", "quad_sampling", "temperature_last", "skew",
+                    "dry_base", "dry_multiplier", "dry_range"
                 ];
                 
                 const diffParams = {};
@@ -255,7 +259,8 @@ export class SessionSettings {
             this.sss_i_minP, this.sss_i_quadSampling, this.sss_i_tfs,
             this.sss_i_typical, this.sss_i_skew, this.sss_i_repPenalty,
             this.sss_i_repRange, this.sss_i_mirostat, this.sss_i_mirostat_tau,
-            this.sss_i_mirostat_eta, this.sss_i_temperature_last
+            this.sss_i_mirostat_eta, this.sss_i_temperature_last,
+            this.sss_i_dry_base, this.sss_i_dry_multiplier, this.sss_i_dry_range
         ];
 
         // Helper function to update button states

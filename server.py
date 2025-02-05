@@ -498,7 +498,8 @@ def api_reset_to_app_defaults():
             sampling_params = [
                 "temperature", "top_k", "top_p", "min_p", "tfs",
                 "mirostat", "mirostat_tau", "mirostat_eta", "typical",
-                "repp", "repr", "repd", "quad_sampling", "temperature_last", "skew"
+                "repp", "repr", "repd", "quad_sampling", "temperature_last", "skew",
+                "dry_base", "dry_multiplier", "dry_range"
             ]
             
             # Reset only sampling parameters to defaults
