@@ -52,10 +52,10 @@ export class Models {
             this.searchBox.tb.value = "";
             this.populateModelList();
         });
-        this.searchBox.tb.addEventListener("input", () => {
+        this.searchBox.tb.addEventListener("input", util.debounce(() => {
             this.searchState = this.searchBox.tb.value;
             this.populateModelList();
-        });
+        }, 400)); // delay in ms
         this.searchBox.tb.addEventListener("keydown", () => {
             if (event.key === 'Escape' || event.keyCode === 27) {
                 this.searchState = this.textbox_initial;
@@ -191,6 +191,14 @@ export class ModelView {
         this.error_message = "";
     }
 
+    getFolderName(path) {
+        if (!path) return null;
+        // Remove trailing slash if present
+        path = path.replace(/[/\\]$/, '');
+        // Get the last part of the path (the folder name)
+        return path.split(/[/\\]/).pop();
+    }
+
     updateView() {
         if (!this.modelID || this.modelID == "new") {
             let model_info = {};
@@ -218,6 +226,12 @@ export class ModelView {
     send(post = null) {
         let packet = {};
         packet.model_info = this.modelInfo;
+        if (this.modelID == "new") {
+            let folderName = this.getFolderName(this.modelInfo.model_directory);
+            if (folderName) {
+                this.modelInfo.name = folderName;
+            }
+        }
         fetch("/api/update_model", { method: "POST", headers: { "Content-Type": "application/json", }, body: JSON.stringify(packet) })
         .then(response => response.json())
         .then(response => {
@@ -346,7 +360,15 @@ export class ModelView {
         this.element.appendChild(util.newDiv(null, "model-view-text divider", ""));
         this.element.appendChild(util.newDiv(null, "model-view-text spacer", ""));
 
-        this.tb_model_directory = new controls.LabelTextbox("model-view-item-left", "Model directory", "model-view-item-textbox wide", "~/models/my_model/", this.modelInfo, "model_directory", null, () => { this.send() } );
+        this.tb_model_directory = new controls.LabelTextbox("model-view-item-left", "Model directory", "model-view-item-textbox wide", "~/models/my_model/", this.modelInfo, "model_directory", null, () => {
+            if (this.modelID == "new") {
+                let folderName = this.getFolderName(this.modelInfo.model_directory);
+                if (folderName) {
+                    this.modelInfo.name = folderName;
+                }
+            }
+            this.send();
+        });
         this.element.appendChild(this.tb_model_directory.element);
 
         this.element_model = util.newHFlex();
